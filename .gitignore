@@ -1,0 +1,7 @@
+# ignore files
+tags
+src/write_up/*.aux
+src/write_up/*.log
+
+# ignore a couple directories
+__pycache__/
