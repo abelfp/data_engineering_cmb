@@ -1,0 +1,17 @@
+The ascii file radio.cat contains 7,108,151 entries, selected to be stronger
+than 0.05 mJy in any of the frequencies: 1.4, 30, 90, 148, 219, 277, 350 GHz.
+The input halo catalogs are halo_nbody.ascii and halo_low_mass.ascii in this
+directory (/scr/ishmael2/users/ytlin/NewCat/halo_nbody_090317).
+
+The columns are
+ra
+dec
+z
+f_1.4
+f_30
+f_90
+f_148
+f_219
+f_277
+f_350
+(the fluxes are in mJy)

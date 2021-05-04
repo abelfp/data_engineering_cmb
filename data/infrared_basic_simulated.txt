@@ -1,0 +1,51 @@
+
+
+THE CATALOG FILES.
+
+The model considers two IR source populations, the basic population and the
+very high flux population. In all cases, the format of the catalogs are as
+follows:
+
+-each line correspods to a distinct IR galaxy, with these entries:
+
+COLUMN 1: Halo ID (integer kind=4)
+COLUMN 2: ra (degrees, real kind=4)
+COLUMN 3: dec (degrees, real kind=4)
+COLUMN 4: redshift (real kind=4)
+COLUMNS 5-10: fluxes at 30, 90, 148, 219, 277, 350 GHz in mJy units, (real kind=4)
+
+
+
+* For the basic population, the data can be found in a set of smaller files,
+  in ASCII format. All these files can be found in IRBasicPop.tar.gz.
+
+  The smaller files are called
+
+  "IRgal_S_#.dat"
+
+  The integer "#" in the filenames are related to the flux of the sources
+  within each file. For each IR source, the integer "#" is computed as
+
+     #=INT(1+(nfiles-1.)*log(S/Smax)/log(S/Smin) ),
+
+where
+
+  nfiles=11,
+
+and
+
+  Smin = 1.e-2,
+  Smax = 3.e2,
+
+and
+
+  S is the 350 GHz flux of the IR source (in mJy).
+
+  However, within each file, IR galaxies are *not* sorted in terms of their
+  flux.
+
+
+
+* For the BLAST very high flux population, there is a file in ASCII
+  format, called "IRBlastPop.dat".  This file has ~300 galaxies in an
+  octant.
