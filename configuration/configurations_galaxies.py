@@ -1,6 +1,8 @@
 import pyspark.sql.types as T
 
 
+columns_f = ["frequency", "source_type", "halo_id", "ra", "dec", "flux"]
+
 IR_SCHEMA = T.StructType([
     T.StructField("halo_id", T.IntegerType(), True),
     T.StructField("ra", T.DoubleType(), True),  # right ascension [degrees]
@@ -29,6 +31,7 @@ RADIO_SCHEMA = T.StructType([
 
 FINAL_SCHEMA = T.StructType([
     T.StructField("frequency", T.StringType(), False), # [GHz]
+    T.StructField("source_type", T.StringType(), False),
     T.StructField("halo_id", T.IntegerType(), True),
     T.StructField("ra", T.DoubleType(), True),  # right ascension [degrees]
     T.StructField("dec", T.DoubleType(), True),  # declination [degrees]
