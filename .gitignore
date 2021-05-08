@@ -2,6 +2,7 @@
 tags
 src/write_up/*.aux
 src/write_up/*.log
+src/write_up/*.out
 
 # ignore a couple directories
 __pycache__/
