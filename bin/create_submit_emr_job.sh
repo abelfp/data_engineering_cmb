@@ -8,8 +8,8 @@ aws emr create-cluster \
      --name "CMB Data Processor" \
      --use-default-roles \
      --release-label emr-6.2.0 \
-     --instance-type m5.xlarge \
-     --instance-count 3 \
+     --instance-type r4.xlarge \
+     --instance-count 10 \
      --bootstrap-actions Path="s3://abelfp-emr-resources/bootstrap/bootstrap_cmb.sh" \
      --applications Name=Spark \
      --steps file:///home/$USER/projects/data_engineering_cmb/configuration/cmb_data_steps.json \

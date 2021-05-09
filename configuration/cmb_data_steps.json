@@ -14,9 +14,17 @@
       "spark.pyspark.driver.python=/usr/bin/python3.7",
       "--conf",
       "spark.sql.sources.partitionOverwriteMode=dynamic",
+      "--num-executors",
+      "9",
+      "--driver-memory",
+      "12G",
+      "--executor-cores",
+      "3",
+      "--executor-memory",
+      "18G",
       "s3://abelfp-emr-resources/scripts/cmb_data.py",
       "--data_source",
-      "infrared_high_flux_simulated,radio_simulated"
+      "infrared_high_flux_simulated,radio_simulated,infrared_basic_simulated"
     ]
   }
 ]

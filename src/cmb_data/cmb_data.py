@@ -24,6 +24,12 @@ def _parse_args() -> dict:
         help="Comma , separated list of Galaxy data sources."
     )
     parser.add_argument(
+        "--halo_data_source",
+        default="halo_low_mass,halo_nbody",
+        type=str,
+        help="Comma , separated list of Halo data sources."
+    )
+    parser.add_argument(
         "--source_bucket",
         default="abelfp-physics-data-raw",
         type=str,
@@ -40,6 +46,12 @@ def _parse_args() -> dict:
         default="data_lake/cmb_simulated/",
         type=str,
         help="Prefix to write Galaxy data to."
+    )
+    parser.add_argument(
+        "--output_location_halo",
+        default="data_lake/halo_simulated/",
+        type=str,
+        help="Prefix to write Halo data to."
     )
     parser.add_argument(
         "--num_output_files",
@@ -84,18 +96,50 @@ def _load_all_freq_df(spark_context, spark_session, source):
     return g_df.withColumn("source_type", F.lit(source)).select(cg.all_freq_c)
 
 
+def _load_halo_df(spark_context, spark_session, source):
+    s3_path = f"s3a://{args['source_bucket']}/{source}/*"
+    h_rdd = spark_context.textFile(name=s3_path)
+    h_rdd = h_rdd.map(lambda x: x.split()) \
+                 .map(lambda x: [float(i) for i in x])
+
+    h_df = spark_session.createDataFrame(h_rdd, cg.HALO_LOW_HIGH_SCHEMA)
+    return h_df
+
 if __name__ == "__main__":
     args = _parse_args()
-    data_sources = args["data_source"].split(",")
-    s3_path_dest = f"s3a://{args['dest_bucket']}/{args['output_location']}"
+    gal_sources = args["data_source"].split(",")
+    halo_sources = args["halo_data_source"].split(",")
+    s3_gal_des = f"s3a://{args['dest_bucket']}/{args['output_location']}"
+    s3_halo_dest = f"s3a://{args['dest_bucket']}/{args['output_location_halo']}"
 
     sc = _get_spark_context()
     spark = _get_spark_session()
 
-    df_ls = [_load_all_freq_df(sc, spark, ds) for ds in data_sources]
-    galaxies_df = reduce(DataFrame.unionAll, df_ls)
+    # load halo catalogs - if needed as these might not update as often
+    if halo_sources:
+        h_df_ls = [_load_halo_df(sc, spark, ds) for ds in halo_sources]
+        halo_df = reduce(DataFrame.unionAll, h_df_ls)
+        halo_df.persist()
+        halo_count = halo_df.count()
+
+        # Quality check 1: check that we have halo data in our data frame
+        assert halo_count > 0, "No Halo data present!"
+
+        halo_df.repartition(args["num_output_files"]) \
+               .write \
+               .mode("overwrite") \
+               .parquet(s3_halo_dest)
+
+        halo_df.unpersist()
+
+    # load galaxy catalogs
+    g_df_ls = [_load_all_freq_df(sc, spark, ds) for ds in gal_sources]
+    galaxies_df = reduce(DataFrame.unionAll, g_df_ls)
     galaxies_df.persist()
-    galaxies_df.count()
+    galaxy_count = galaxies_df.count()
+
+    # Quality check 2: check that we have Galaxy data in our data frame
+    assert galaxy_count > 0, "No Galaxy data present!"
 
     for freq in cg.frequencies:
         df = galaxies_df.withColumn("frequency", F.lit(freq)) \
@@ -106,6 +150,6 @@ if __name__ == "__main__":
           .write \
           .partitionBy("frequency", "source_type") \
           .mode("overwrite") \
-          .parquet(s3_path_dest)
+          .parquet(s3_gal_des)
 
     galaxies_df.unpersist()
