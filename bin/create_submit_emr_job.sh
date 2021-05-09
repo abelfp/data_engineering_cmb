@@ -8,10 +8,10 @@ aws emr create-cluster \
      --name "CMB Data Processor" \
      --use-default-roles \
      --release-label emr-6.2.0 \
-     --instance-type r4.xlarge \
-     --instance-count 10 \
+     --instance-type m5.xlarge \
+     --instance-count 3 \
      --bootstrap-actions Path="s3://abelfp-emr-resources/bootstrap/bootstrap_cmb.sh" \
      --applications Name=Spark \
-     --steps Type=Spark,Name="Spark Program",ActionOnFailure=TERMINATE_CLUSTER,Args=[--deploy-mode,cluster,--master,yarn,--conf,spark.pyspark.python=/usr/bin/python3.7,--conf,spark.pyspark.driver.python=/usr/bin/python3.7,--num-executors,14,--driver-memory,12G,--executor-cores,2,--executor-memory,18G,s3://abelfp-emr-resources/scripts/cmb_data.py,--data_source,infrared_basic_simulated] \
+     --steps file:///home/$USER/projects/data_engineering_cmb/configuration/cmb_data_steps.json \
      --ec2-attributes KeyName=spark-cluster \
      --auto-terminate

@@ -1,7 +1,8 @@
 import argparse
+from functools import reduce
 
 from pyspark import SparkContext, SparkConf
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
 
@@ -20,7 +21,7 @@ def _parse_args() -> dict:
         "--data_source",
         default="infrared_high_flux_simulated",
         type=str,
-        help="Percentage % separated list of data sources."
+        help="Comma , separated list of Galaxy data sources."
     )
     parser.add_argument(
         "--source_bucket",
@@ -38,7 +39,7 @@ def _parse_args() -> dict:
         "--output_location",
         default="data_lake/cmb_simulated/",
         type=str,
-        help="Prefix to write data to."
+        help="Prefix to write Galaxy data to."
     )
     parser.add_argument(
         "--num_output_files",
@@ -61,78 +62,50 @@ def _get_spark_session():
     return SparkSession.builder.getOrCreate()
 
 
-def _get_frequency_list(simulation_id):
-    simulations_freq = {
-        "infrared_basic_simulated": [
-            "30",
-            "90",
-            "148",
-            "219",
-            "277",
-            "350"
-        ],
-        "infrared_high_flux_simulated": [
-            "30",
-            "90",
-            "148",
-            "219",
-            "277",
-            "350"
-        ],
-        "radio_simulated": [
-            "1.4",
-            "30",
-            "90",
-            "148",
-            "219",
-            "277",
-            "350"
-        ],
-    }
-    return simulations_freq.get(simulation_id)
-
-
-def _load_galaxy_df(spark_context, spark_session, source):
+def _load_all_freq_df(spark_context, spark_session, source):
     s3_path = f"s3a://{args['source_bucket']}/{source}/*"
     g_rdd = spark_context.textFile(name=s3_path)
     g_rdd = g_rdd.map(lambda x: x.split()) \
                  .map(lambda x: [float(i) if i.find('.') != -1 else
                                  int(i) for i in x])
+
+    # create dataframes and account for missing halo_id in radio_simulated
     if source == "radio_simulated":
         g_df = spark_session.createDataFrame(g_rdd, cg.RADIO_SCHEMA)
         g_df = g_df.withColumn("halo_id", F.lit(None).cast(T.IntegerType()))
     else:
         g_df = spark_session.createDataFrame(g_rdd, cg.IR_SCHEMA)
-    return g_df.withColumn("source_type", F.lit(source))
 
+    # add missing frequencies to dataset
+    miss_freq_c = {f"f_{nu}" for nu in cg.frequencies} - set(g_df.columns)
+    for freq_col in miss_freq_c:
+        g_df = g_df.withColumn(freq_col, F.lit(None).cast(T.DoubleType()))
 
-def _write_galaxy_df(source_df, source, s3_dest):
-    freq_ls = _get_frequency_list(source)
-    for freq in freq_ls:
-        df = source_df.withColumn("frequency", F.lit(freq)) \
-                      .withColumnRenamed(f"f_{freq}", "flux") \
-                      .select(cg.columns_f)
-        df.repartition(args["num_output_files"]) \
-          .write \
-          .partitionBy("frequency", "source_type") \
-          .mode("overwrite") \
-          .parquet(s3_dest)
+    return g_df.withColumn("source_type", F.lit(source)).select(cg.all_freq_c)
 
 
 if __name__ == "__main__":
     args = _parse_args()
-    data_sources = args["data_source"].split("%")
+    data_sources = args["data_source"].split(",")
     s3_path_dest = f"s3a://{args['dest_bucket']}/{args['output_location']}"
 
     sc = _get_spark_context()
     spark = _get_spark_session()
 
-    # process the galaxy data sources
-    spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
-    for data_source in data_sources:
-        galaxy_df = _load_galaxy_df(sc, spark, data_source)
-        galaxy_df.persist()
-        galaxy_df.count()
+    df_ls = [_load_all_freq_df(sc, spark, ds) for ds in data_sources]
+    galaxies_df = reduce(DataFrame.unionAll, df_ls)
+    galaxies_df.persist()
+    galaxies_df.count()
 
-        _write_galaxy_df(galaxy_df, data_source, s3_path_dest)
-        galaxy_df.unpersist()
+    for freq in cg.frequencies:
+        df = galaxies_df.withColumn("frequency", F.lit(freq)) \
+                        .withColumnRenamed(f"f_{freq}", "flux") \
+                        .filter(F.col("flux").isNotNull()) \
+                        .select(cg.columns_final)
+        df.repartition(args["num_output_files"]) \
+          .write \
+          .partitionBy("frequency", "source_type") \
+          .mode("overwrite") \
+          .parquet(s3_path_dest)
+
+    galaxies_df.unpersist()

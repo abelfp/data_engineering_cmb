@@ -1,0 +1,22 @@
+[
+  {
+    "Type": "Spark",
+    "Name": "Process Catalogs",
+    "ActionOnFailure": "TERMINATE_CLUSTER",
+    "Args": [
+      "--deploy-mode",
+      "cluster",
+      "--master",
+      "yarn",
+      "--conf",
+      "spark.pyspark.python=/usr/bin/python3.7",
+      "--conf",
+      "spark.pyspark.driver.python=/usr/bin/python3.7",
+      "--conf",
+      "spark.sql.sources.partitionOverwriteMode=dynamic",
+      "s3://abelfp-emr-resources/scripts/cmb_data.py",
+      "--data_source",
+      "infrared_high_flux_simulated,radio_simulated"
+    ]
+  }
+]

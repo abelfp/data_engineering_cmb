@@ -60,5 +60,3 @@ data dictionary in the notebook or in a separate file.
     - The data populates a dashboard that must be updated on a daily basis by
       7am every day.
     - The database needed to be accessed by 100+ people.
-
-

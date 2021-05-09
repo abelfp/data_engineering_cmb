@@ -57,9 +57,16 @@ catalogs come in as ASCII.GZ files with over 800 MB of data. All of this data
 was uploaded to \texttt{s3://abelfp-physics-data-raw/}. The catalogs come with
 a description of the data and what each column represents. These files can be
 found under the /texttt{data/} directory in this project, all descriptions are
-TXT files.
+in TXT files.
 
 \subsection*{Galaxy Catalogs}
+%Size of galaxy catalogs -> ~90 GB
+%>>> df.filter((F.col('source_type') == 'infrared_basic_simulated') & (F.col('frequency') == '148')).count()
+%627144581
+%>>> df.filter((F.col('source_type') == 'radio_simulated') & (F.col('frequency') == '1.4')).count()
+%7108151
+%>>> df.filter((F.col('source_type') == 'infrared_high_flux_simulated') & (F.col('frequency') == '148')).count()
+%298
 
 \subsection*{Halo Catalogs}
 
