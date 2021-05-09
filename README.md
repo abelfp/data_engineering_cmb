@@ -1,5 +1,8 @@
 # Data Engineering Capstone Project - CMB Simulated Data
 
+You can find the Write Up for this project under the directory
+`src/write_up/project_write_up.pdf`.
+
 ## CMB Data
 The data processed in this package was obtained from LAMBDA - NASA. You can
 learn more on the data
