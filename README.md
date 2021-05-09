@@ -1,62 +1,32 @@
-# Data Engineering Capstone Project - Astrophysics Database
+# Data Engineering Capstone Project - CMB Simulated Data
 
-## {Project Title}
+## CMB Data
+The data processed in this package was obtained from LAMBDA - NASA. You can
+learn more on the data
+[here](https://lambda.gsfc.nasa.gov/simulation/tb_sim_ov.cfm#2009). The simulated
+data consists of Halo and Galaxy catalogs. These files can be downloaded as
+binary or ascii files. I downloaded the ascii files and uploaded them to the
+S3 bucket `s3://abelfp-physics-data-raw/` in the `us-east-1` region.
 
-### Project Summary
---describe your project at a high level--
+The Galaxy catalogs weight over 80 GB, and the Halo Catalogs weight over 800
+MB.
 
-### Step 1: Scope the Project and Gather Data
+This package transforms the data into parquet format and loads them to a data
+lake in the bucket `s3://abelfp-physics-data/data_lake/` under `cmb_simulated/`
+and `halo_simulated/`. `cmb_simulated` is partitioned by `frequency` and
+`source_type` since the data files were split by the type of galaxies with
+Basic Infrared, High Flux Infrared, and Radio.
 
-#### Scope
-Explain what you plan to do with the project in more detail. What data do you
-use? What is your end solution look like? What tools did you use? etc.
+## Running the Data Pipelines
+The pipelines run in AWS EMR, to run the pipelines, I use the AWS CLI tool for
+creating the cluster, bootstraping the script, and running it through a Spark
+step. You can configure the cluster hardware in the
+`bin/create_submit_emr_job.sh` and you can configure any Spark setting on the
+`configuration/cmb_data_steps.json`.
 
-#### Describe and Gather Data
-Describe the data sets you're using. Where did it come from? What type of
-information is included?
+To run the pipelines, I need to have AWS CLI set up with a user that has
+permissions to create clusters. Then I run:
 
-### Step 2: Explore and Access the Data
-
-#### Explore the Data
-Identify data quality issues, like missing values, duplicate data, etc.
-
-#### Cleaning Steps
-Document steps necessary to clean the data.
-
-### Step 3: Define the Data Model
-
-#### Conceptual Data Model
-Map out the conceptual data model and explain why you chose that model.
-
-#### Mapping Out Data Pipelines
-List the steps necessary to pipeline the data into the chosen data model.
-
-### Step 4: Run Pipelines to Model the Data
-
-#### Create the Data Model
-Build the data pipelines to create the data model.
-
-#### Data Quality Checks
-Explain the data quality you'll perform to ensure the pipeline ran as expected.
-
-These could include:
-- Integrity constraints on the relational database (e.g. unique key, data type,
-  etc.)
-- Unit tests for the scripts to ensure they are doing the right thing.
-- Source/Count checks to ensure completeness.
-
-#### Data Dictionary
-Create a data dictionary for your data model. For each field, provide a brief
-description of what the data is and where it came from. You can include the
-data dictionary in the notebook or in a separate file.
-
-### Step 5: Complete the Project Write Up
-- Clearly state the rationale for the choice of tools and technologies for the
-  project
-- Propose how often the data should be updated and why.
-- Write a description of how you would approach the problem differently under
-  the following scenarios:
-    - The data was increased by 100x.
-    - The data populates a dashboard that must be updated on a daily basis by
-      7am every day.
-    - The database needed to be accessed by 100+ people.
+```bash
+$ bash bin/create_submit_emr_job.sh
+```

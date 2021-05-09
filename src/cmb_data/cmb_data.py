@@ -9,10 +9,12 @@ import pyspark.sql.types as T
 import configurations_galaxies as cg
 
 
-def _parse_args() -> dict:
+def _parse_args():
     """Returns a dictionary of the arguments passed to the file.
+
     Args:
         None
+
     Returns:
         dict: Dictionary of arguments passed to the file.
     """
@@ -64,6 +66,14 @@ def _parse_args() -> dict:
 
 
 def _get_spark_context():
+    """Returns SparkContext with AppName set.
+
+    Args:
+        None
+
+    Returns:
+        SparkContext: SparkContext with default configuration.
+    """
     conf = SparkConf()
     conf.setAppName("CMB Simulated Data Processor")
     spark_context = SparkContext(conf=conf)
@@ -71,10 +81,28 @@ def _get_spark_context():
 
 
 def _get_spark_session():
+    """Returns an individual spark session.
+
+    Args:
+        None
+
+    Returns:
+        SparkSession: SparkSession for creating DataFraes
+    """
     return SparkSession.builder.getOrCreate()
 
 
 def _load_all_freq_df(spark_context, spark_session, source):
+    """Loads Galaxy dataset from raw data in S3 to a Pyspark DataFrame
+
+    Args:
+        spark_context (SparkContext): Current SparkContext
+        spark_session (SparkSession): SparkSession to create DataFrame
+        source (str): Data source for the galaxy catalog to load
+
+    Returns:
+        DataFrame: Dataframe with data from source
+    """
     s3_path = f"s3a://{args['source_bucket']}/{source}/*"
     g_rdd = spark_context.textFile(name=s3_path)
     g_rdd = g_rdd.map(lambda x: x.split()) \
@@ -97,6 +125,16 @@ def _load_all_freq_df(spark_context, spark_session, source):
 
 
 def _load_halo_df(spark_context, spark_session, source):
+    """Loads Halo dataset from raw data in S3 to a Pyspark DataFrame
+
+    Args:
+        spark_context (SparkContext): Current SparkContext
+        spark_session (SparkSession): SparkSession to create DataFrame
+        source (str): Data source for the halo catalog to load
+
+    Returns:
+        DataFrame: Dataframe with data from source
+    """
     s3_path = f"s3a://{args['source_bucket']}/{source}/*"
     h_rdd = spark_context.textFile(name=s3_path)
     h_rdd = h_rdd.map(lambda x: x.split()) \
@@ -105,12 +143,13 @@ def _load_halo_df(spark_context, spark_session, source):
     h_df = spark_session.createDataFrame(h_rdd, cg.HALO_LOW_HIGH_SCHEMA)
     return h_df
 
+
 if __name__ == "__main__":
     args = _parse_args()
     gal_sources = args["data_source"].split(",")
     halo_sources = args["halo_data_source"].split(",")
     s3_gal_des = f"s3a://{args['dest_bucket']}/{args['output_location']}"
-    s3_halo_dest = f"s3a://{args['dest_bucket']}/{args['output_location_halo']}"
+    s3_halo_des = f"s3a://{args['dest_bucket']}/{args['output_location_halo']}"
 
     sc = _get_spark_context()
     spark = _get_spark_session()
@@ -128,7 +167,7 @@ if __name__ == "__main__":
         halo_df.repartition(args["num_output_files"]) \
                .write \
                .mode("overwrite") \
-               .parquet(s3_halo_dest)
+               .parquet(s3_halo_des)
 
         halo_df.unpersist()
 
